@@ -31,7 +31,7 @@ export default function Modal({ isOpen, onClose, title, children, width = 'max-w
             transition={{ duration: 0.25, ease: 'easeOut' }}
             className={`bg-white rounded-2xl shadow-2xl w-full ${width} overflow-hidden`}
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)] relative z-10 bg-white" style={{ borderColor: 'var(--border-color)' }}>
               <h2 className="font-display font-semibold text-gray-900">{title}</h2>
               <button
                 onClick={onClose}

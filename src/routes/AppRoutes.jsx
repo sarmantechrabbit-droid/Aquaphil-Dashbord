@@ -38,7 +38,7 @@ export default function AppRoutes() {
       
       <Route element={<Layout />}>
         {/* <Route path="/" element={<Home />} /> */}
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/" element={<Dashboard />} />
         
         {/* Users */}
         <Route path="/users/customers" element={<Customers />} />
@@ -48,6 +48,7 @@ export default function AppRoutes() {
         {/* Products */}
         <Route path="/products/list" element={<ProductList />} />
         <Route path="/products/add" element={<AddProduct />} />
+        <Route path="/products/edit/:id" element={<AddProduct />} />
         <Route path="/products/view/:id" element={<ProductDetails />} />
         <Route path="/products/categories" element={<Categories />} />
 

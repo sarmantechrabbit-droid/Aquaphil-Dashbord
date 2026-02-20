@@ -1,15 +1,33 @@
 import { useState, useRef } from 'react'
-import { Eye, FileText, Printer, Download, X } from 'lucide-react'
+import { Eye, FileText, Printer, Download, X, Trash2, Edit2 } from 'lucide-react'
+import DeleteModal from '../common/DeleteModal'
 import { useReactToPrint } from 'react-to-print'
 import Table from '../common/Table'
+import StatusSelect from '../common/StatusSelect'
 import StatusBadge from '../common/StatusBadge'
 import Modal from '../common/Modal'
-import { orders, customers, systemSettings } from '../../data/dummyData'
+import { useData } from '../../context/DataContext'
+import { customers, systemSettings } from '../../data/dummyData'
 
 export default function OrderTable() {
+  const { orders, updateOrder, deleteOrder } = useData()
   const [selected, setSelected] = useState(null)
   const [showInvoice, setShowInvoice] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(null)
   const invoiceRef = useRef()
+
+  const handleDelete = () => {
+    deleteOrder(isDeleting)
+    setIsDeleting(null)
+    if (selected?.id === isDeleting) setSelected(null)
+  }
+
+  const handleStatusUpdate = (id, status) => {
+    updateOrder(id, { status })
+    if (selected?.id === id) {
+      setSelected(prev => ({ ...prev, status }))
+    }
+  }
 
   const handlePrint = useReactToPrint({
     content: () => invoiceRef.current,
@@ -22,30 +40,53 @@ export default function OrderTable() {
   }
 
   const columns = [
-    { key: 'id', label: 'Order ID', render: v => <span className="font-mono text-xs font-semibold text-blue-700">{v}</span> },
-    { key: 'customer', label: 'Customer' },
-    { key: 'product', label: 'Product' },
-    { key: 'amount', label: 'Amount', render: v => <span className="font-semibold">₹{(v || 0).toLocaleString()}</span> },
+    { key: 'id', label: 'Order ID', render: v => <span className="font-mono text-xs font-semibold text-blue-700">{v || '—'}</span> },
+    { key: 'customer', label: 'Customer', render: v => v || '—' },
+    { key: 'product', label: 'Product', render: v => v || '—'} ,
+    { key: 'amount', label: 'Amount', render: v => v != null ? <span className="font-semibold">₹{v.toLocaleString()}</span> : '—' },
     { key: 'date', label: 'Date' },
     { key: 'payment', label: 'Payment', render: v => <StatusBadge status={v} /> },
-    { key: 'status', label: 'Status', render: v => <StatusBadge status={v} /> },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (v, row) => (
+        <StatusSelect
+          status={v}
+          options={['pending', 'processing', 'shipped', 'delivered', 'cancelled']}
+          onChange={(newStatus) => handleStatusUpdate(row.id, newStatus)}
+        />
+      )
+    },
     {
       key: 'id', label: 'Actions', render: (_, row) => (
         <div className="flex items-center gap-2">
-          <button 
-            onClick={() => setSelected(row)} 
-            className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded hover:bg-blue-50 transition-colors" 
+          <button
+            onClick={() => setSelected(row)}
+            className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded hover:bg-blue-50 transition-colors"
             style={{ color: 'var(--primary)' }}
             title="View Details"
           >
             <Eye size={14} />
           </button>
-          <button 
-            onClick={() => { setSelected(row); setShowInvoice(true); }} 
+          <button
+            onClick={() => { setSelected(row); setShowInvoice(true); }}
             className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded hover:bg-gray-100 transition-colors text-gray-600"
             title="View Invoice"
           >
             <FileText size={14} />
+          </button>
+          <button
+            className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded hover:bg-gray-100 transition-colors text-gray-600 hover:text-amber-600"
+            title="Edit Order"
+          >
+            <Edit2 size={14} />
+          </button>
+          <button
+            onClick={() => setIsDeleting(row.id)}
+            className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded hover:bg-red-50 text-red-600 transition-colors"
+            title="Delete Order"
+          >
+            <Trash2 size={14} />
           </button>
         </div>
       )
@@ -54,7 +95,7 @@ export default function OrderTable() {
 
   const InvoiceTemplate = ({ order, customer }) => {
     if (!order) return null;
-    
+
     // Tax calculation (Mock logic: assuming 18% GST included in total)
     const taxRate = 0.18;
     const baseAmount = order.amount / (1 + taxRate);
@@ -153,13 +194,13 @@ export default function OrderTable() {
 
   return (
     <>
-      <Table 
-        title="Order List" 
-        data={orders} 
-        columns={columns} 
-        searchKey="customer" 
+      <Table
+        title="Recent Orders"
+        data={orders}
+        columns={columns}
+        searchKey="customer"
       />
-      
+
       {/* View Details Modal */}
       <Modal isOpen={!!selected && !showInvoice} onClose={() => setSelected(null)} title="Order Details" width="max-w-2xl">
         {selected && (
@@ -199,6 +240,25 @@ export default function OrderTable() {
                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Payment Status</p>
                    <StatusBadge status={selected.payment} />
                 </div>
+             </div>
+
+             <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+               <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Update Order Status</label>
+               <div className="flex flex-wrap gap-2">
+                 {['pending', 'processing', 'shipped', 'delivered', 'cancelled'].map(s => (
+                   <button
+                     key={s}
+                     onClick={() => handleStatusUpdate(selected.id, s)}
+                     className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${
+                       selected.status === s 
+                         ? 'bg-gray-900 text-white shadow-md transform scale-105' 
+                         : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'
+                     }`}
+                   >
+                     {s}
+                   </button>
+                 ))}
+               </div>
              </div>
 
              <div className="flex items-center justify-between pt-2">
@@ -250,6 +310,14 @@ export default function OrderTable() {
            </div>
         </div>
       )}
+
+      <DeleteModal 
+        isOpen={!!isDeleting} 
+        onClose={() => setIsDeleting(null)} 
+        onConfirm={handleDelete}
+        title="Delete Order"
+        message="Are you sure you want to delete this order? This action cannot be undone."
+      />
     </>
   )
 }

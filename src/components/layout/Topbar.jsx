@@ -13,7 +13,7 @@ import logo from '../../assets/logo.png'
 import { useSidebar } from '../../context/SidebarContext'
 
 const navItems = [
-  { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+  { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   {
     key: 'users',
     label: 'Users',
@@ -119,7 +119,7 @@ function DesktopNav() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute top-full left-0 min-w-[200px] pt-2 z-[100]"
+                  className="absolute top-full left-0 min-w-[200px] pt-2 z-100"
                 >
                   <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-2">
                     {item.children.map((child) => {
@@ -171,7 +171,7 @@ export default function Topbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-90 h-16 bg-white border-b border-gray-100 px-6 flex items-center justify-between shadow-sm">
+      <header className="sticky top-0 z-40 h-16 bg-white border-b border-gray-100 px-6 flex items-center justify-between shadow-[0_4px_20px_-5px_rgba(0,0,0,0.1)]">
         {/* Left Section: Dynamic Content (Mode 1 vs Mode 2) */}
         <div className="flex items-center gap-6">
           {isSidebarVisible ? (
@@ -203,9 +203,9 @@ export default function Topbar() {
             </div>
           ) : (
             // Sidebar is Hidden: Show Logo + Desktop Nav (Image 2)
-            <div className="flex items-center gap-6 h-full">
+            <div className="flex items-center gap-2 h-full">
               <Link 
-                to="/dashboard" 
+                to="/" 
                 onClick={(e) => {
                   if (!isSidebarVisible) {
                     toggleSidebar()
@@ -213,7 +213,7 @@ export default function Topbar() {
                 }}
                 className="flex items-center gap-2 mr-4 group cursor-pointer"
               >
-                <img src={logo} alt="Aquaphil" className="h-8 w-auto object-contain transition-transform group-hover:scale-105" />
+                <img src={logo} alt="Aquaphil" className="h-25 w-auto object-contain transition-transform group-hover:scale-105" />
               </Link>
               <DesktopNav />
             </div>
@@ -274,8 +274,8 @@ export default function Topbar() {
                     className="absolute top-[125%] right-0 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 z-50"
                   >
                     {[
-                      { label: 'View Profile', icon: UserCog, path: '/profile' },
-                      { label: 'Billing & Plans', icon: CreditCard, path: '/billing' },
+                      // { label: 'View Profile', icon: UserCog, path: '/profile' },
+                      // { label: 'Billing & Plans', icon: CreditCard, path: '/billing' },
                       { label: 'Account Settings', icon: Settings, path: '/system/general' },
                       { label: 'Logout', icon: LogOut, path: '/login', danger: true },
                     ].map((item, i) => (

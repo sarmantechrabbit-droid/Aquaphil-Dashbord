@@ -3,8 +3,10 @@ import { motion } from 'framer-motion'
 import StatusBadge from '../common/StatusBadge'
 import Modal from '../common/Modal'
 import { amcPlans as initialPlans } from '../../data/dummyData'
-import { Shield, Plus, Check } from 'lucide-react'
+import { Shield, Plus, Check, Edit2, Trash2 } from 'lucide-react'
 import AMCPlanForm from './AMCPlanForm'
+import Pagination from '../common/Pagination'
+import StatusSelect from '../common/StatusSelect'
 
 const colors = ['var(--primary)', '#0891b2', '#7c3aed', '#d97706']
 
@@ -12,6 +14,29 @@ export default function AMCPlansGrid() {
   const [plans, setPlans] = useState(initialPlans)
   const [showAdd, setShowAdd] = useState(false)
   const [selected, setSelected] = useState(null)
+  const [editingPlan, setEditingPlan] = useState(null)
+  const [page, setPage] = useState(1)
+  const perPage = 8
+
+  const paginatedPlans = plans.slice((page - 1) * perPage, page * perPage)
+  const totalPages = Math.ceil(plans.length / perPage)
+
+  const handleEditSubmit = (updatedData) => {
+    setPlans(prev => prev.map(p => p.id === editingPlan.id ? { ...p, ...updatedData } : p))
+    setEditingPlan(null)
+  }
+
+  const handleStatusChange = (id, newStatus) => {
+    setPlans(prev => prev.map(p => p.id === id ? { ...p, status: newStatus } : p))
+  }
+
+  const handleDelete = (id, e) => {
+    e.stopPropagation()
+    if (window.confirm('Are you sure you want to delete this plan?')) {
+      setPlans(prev => prev.filter(p => p.id !== id))
+      if (selected?.id === id) setSelected(null)
+    }
+  }
 
   const handleAddSubmit = (newPlan) => {
     const planWithId = {
@@ -34,7 +59,7 @@ export default function AMCPlansGrid() {
         </button>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {plans.map((plan, i) => (
+        {paginatedPlans.map((plan, i) => (
           <motion.div
             key={plan.id}
             whileHover={{ y: -4, boxShadow: '0 12px 30px rgba(0,0,0,0.12)' }}
@@ -48,6 +73,21 @@ export default function AMCPlansGrid() {
               <h3 className="font-display font-bold text-lg group-hover:underline">{plan.name}</h3>
               <p className="text-sm opacity-80">{plan.duration}</p>
               <p className="text-3xl font-display font-black mt-2">₹{(plan.price || 0).toLocaleString()}</p>
+              
+              <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setEditingPlan(plan); }}
+                  className="p-1.5 bg-white/20 hover:bg-white/40 rounded-lg text-white backdrop-blur-sm transition-colors"
+                >
+                  <Edit2 size={14} />
+                </button>
+                <button 
+                  onClick={(e) => handleDelete(plan.id, e)}
+                  className="p-1.5 bg-white/20 hover:bg-red-500/80 rounded-lg text-white backdrop-blur-sm transition-colors"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
             </div>
             <div className="p-5 space-y-2">
               {[
@@ -63,13 +103,26 @@ export default function AMCPlansGrid() {
                   <span className="text-xs text-gray-600">{f}</span>
                 </div>
               ))}
-              <div className="pt-3">
-                <StatusBadge status={plan.status} />
+              <div className="pt-3" onClick={(e) => e.stopPropagation()}>
+                <StatusSelect 
+                  status={plan.status} 
+                  options={['active', 'inactive']} 
+                  onChange={(newStatus) => handleStatusChange(plan.id, newStatus)}
+                  size="xs"
+                />
               </div>
             </div>
           </motion.div>
         ))}
       </div>
+
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        totalItems={plans.length}
+        itemsPerPage={perPage}
+      />
 
       <Modal isOpen={!!selected} onClose={() => setSelected(null)} title="Plan Details">
         {selected && (
@@ -120,6 +173,12 @@ export default function AMCPlansGrid() {
 
       <Modal isOpen={showAdd} onClose={() => setShowAdd(false)} title="Create New AMC Plan">
         <AMCPlanForm onSubmit={handleAddSubmit} />
+      </Modal>
+
+      <Modal isOpen={!!editingPlan} onClose={() => setEditingPlan(null)} title="Edit AMC Plan">
+        {editingPlan && (
+          <AMCPlanForm initialData={editingPlan} onSubmit={handleEditSubmit} />
+        )}
       </Modal>
     </div>
   )

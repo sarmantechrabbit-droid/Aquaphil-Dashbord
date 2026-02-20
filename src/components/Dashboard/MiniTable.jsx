@@ -16,7 +16,7 @@ export default function MiniTable({ rows, cols, emptyMsg = 'No data' }) {
             <tr key={row.id || i} className="border-t hover:bg-gray-50 transition-colors" style={{ borderColor: 'var(--border-color)' }}>
               {cols.map(c => (
                 <td key={c.key} className="px-4 py-3 text-gray-700 text-xs">
-                  {c.render ? c.render(row[c.key], row) : row[c.key]}
+                  {c.render ? (c.render(row[c.key], row) || '—') : (row[c.key] || '—')}
                 </td>
               ))}
             </tr>

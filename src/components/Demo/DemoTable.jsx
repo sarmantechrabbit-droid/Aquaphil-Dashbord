@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Eye, UserCheck, Plus } from 'lucide-react'
+import { Eye, UserCheck, Plus, Edit2, Trash2 } from 'lucide-react'
+import DeleteModal from '../common/DeleteModal'
 import Table from '../common/Table'
 import StatusBadge from '../common/StatusBadge'
 import Modal from '../common/Modal'
@@ -12,6 +13,13 @@ export default function DemoTable() {
   const [selected, setSelected] = useState(null)
   const [assigningTo, setAssigningTo] = useState(null)
   const [showAdd, setShowAdd] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(null)
+
+  const handleDelete = () => {
+    setData(prev => prev.filter(d => d.id !== isDeleting))
+    setIsDeleting(null)
+    if (selected?.id === isDeleting) setSelected(null)
+  }
 
   const handleAddSubmit = (newDemo) => {
     const demoWithId = {
@@ -36,10 +44,10 @@ export default function DemoTable() {
 
   const columns = [
     { key: 'id', label: 'ID' },
-    { key: 'customer', label: 'Customer' },
-    { key: 'product', label: 'Interest' },
+    { key: 'customer', label: 'Customer', render: v => v || '—' },
+    { key: 'product', label: 'Interest', render: v => v || '—' },
     { key: 'scheduledDate', label: 'Date', render: (v) => v || <span className="text-gray-400 italic">Unscheduled</span> },
-    { key: 'scheduledTime', label: 'Time' },
+    { key: 'scheduledTime', label: 'Time', render: v => v || '—' },
     { key: 'assignedTo', label: 'Agent', render: v => v ? (
       <div className="flex items-center gap-1.5">
         <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold">
@@ -62,6 +70,12 @@ export default function DemoTable() {
           )}
           <button onClick={() => setSelected(row)} className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded hover:bg-blue-50 transition-colors" style={{ color: 'var(--primary)' }}>
             <Eye size={13} /> View
+          </button>
+          <button className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-amber-600 transition-colors" title="Edit Booking">
+            <Edit2 size={16} />
+          </button>
+          <button onClick={() => setIsDeleting(row.id)} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-red-600 transition-colors" title="Delete Booking">
+            <Trash2 size={16} />
           </button>
         </div>
       )
@@ -190,6 +204,14 @@ export default function DemoTable() {
            </div>
         )}
       </Modal>
+
+      <DeleteModal 
+        isOpen={!!isDeleting} 
+        onClose={() => setIsDeleting(null)} 
+        onConfirm={handleDelete}
+        title="Delete Demo Booking"
+        message="Are you sure you want to delete this demo booking? This action cannot be undone."
+      />
     </>
   )
 }

@@ -1,12 +1,20 @@
 import { useState } from 'react'
-import { Eye } from 'lucide-react'
+import { Eye, Edit2, Trash2 } from 'lucide-react'
+import DeleteModal from '../common/DeleteModal'
 import Table from '../common/Table'
 import StatusBadge from '../common/StatusBadge'
 import Modal from '../common/Modal'
 import { supportTickets } from '../../data/dummyData'
 
 export default function SupportTicketTable() {
+  const [tickets, setTickets] = useState(supportTickets)
   const [selected, setSelected] = useState(null)
+  const [isDeleting, setIsDeleting] = useState(null)
+
+  const handleDelete = () => {
+    setTickets(prev => prev.filter(t => t.id !== isDeleting))
+    setIsDeleting(null)
+  }
 
   const columns = [
     { key: 'id', label: 'Ticket ID', render: v => <span className="font-mono text-xs font-semibold text-purple-700">{v}</span> },
@@ -19,16 +27,24 @@ export default function SupportTicketTable() {
     { key: 'status', label: 'Status', render: v => <StatusBadge status={v} /> },
     {
       key: 'id', label: '', render: (_, row) => (
-        <button onClick={() => setSelected(row)} className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded hover:bg-blue-50 transition-colors" style={{ color: 'var(--primary)' }}>
-          <Eye size={13} /> View
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setSelected(row)} className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded hover:bg-blue-50 transition-colors" style={{ color: 'var(--primary)' }} title="View Details">
+            <Eye size={13} /> View
+          </button>
+          <button className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-amber-600 transition-colors" title="Edit Ticket">
+            <Edit2 size={15} />
+          </button>
+          <button onClick={() => setIsDeleting(row.id)} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-red-600 transition-colors" title="Delete Ticket">
+            <Trash2 size={15} />
+          </button>
+        </div>
       )
     }
   ]
 
   return (
     <>
-      <Table title="Support Tickets" data={supportTickets} columns={columns} searchKey="subject" />
+      <Table title="Support Tickets" data={tickets} columns={columns} searchKey="subject" />
       
       <Modal isOpen={!!selected} onClose={() => setSelected(null)} title="Ticket Details">
         {selected && (
@@ -99,6 +115,14 @@ export default function SupportTicketTable() {
           </div>
         )}
       </Modal>
+
+      <DeleteModal 
+        isOpen={!!isDeleting} 
+        onClose={() => setIsDeleting(null)} 
+        onConfirm={handleDelete}
+        title="Delete Support Ticket"
+        message="Are you sure you want to delete this support ticket? This action cannot be undone."
+      />
     </>
   )
 }

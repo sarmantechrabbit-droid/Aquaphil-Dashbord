@@ -1,7 +1,11 @@
 import { useState, useRef } from 'react'
-import { X, Upload, Plus, Trash2 } from 'lucide-react'
+import { X, Upload, Plus, Trash2, CheckCircle2 } from 'lucide-react'
 
 export default function ProductForm({ onSubmit, initialData = null }) {
+  // Initial determination if color variants exist
+  const hasInitialVariants = !!(initialData?.colorVariants && initialData.colorVariants.length > 0)
+
+  const [hasVariants, setHasVariants] = useState(hasInitialVariants)
   const [formData, setFormData] = useState(initialData || {
     name: '',
     sku: '',
@@ -15,14 +19,24 @@ export default function ProductForm({ onSubmit, initialData = null }) {
     description: '',
     shippingReturns: '',
     returnPolicies: '',
-    capacities: initialData?.capacities?.join(', ') || ''
+    capacities: initialData?.capacities?.join(', ') || '',
+    mainImage: null,
+    gallery: []
   })
 
-  const [colorVariants, setColorVariants] = useState(initialData?.colorVariants || [
-    { id: Date.now().toString(), color: '#FFFFFF', label: 'White', images: [] }
-  ])
+  // Color Variant Management
+  const [colorVariants, setColorVariants] = useState(initialData?.colorVariants || [])
+  const [currentVariant, setCurrentVariant] = useState({
+    label: '',
+    color: '#FFFFFF',
+    mainImage: null,
+    gallery: []
+  })
 
-  const fileInputRefs = useRef({})
+  const formMainImageRef = useRef(null)
+  const formGalleryRef = useRef(null)
+  const variantMainImageRef = useRef(null)
+  const variantGalleryRef = useRef(null)
 
   const handleChange = (e) => {
     const { name, value, type } = e.target
@@ -32,45 +46,86 @@ export default function ProductForm({ onSubmit, initialData = null }) {
     }))
   }
 
+  // Global Image Handling (Non-variant mode)
+  const handleGlobalMainImage = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setFormData(prev => ({ ...prev, mainImage: URL.createObjectURL(file) }))
+    }
+  }
+
+  const handleGlobalGallery = (e) => {
+    const files = Array.from(e.target.files)
+    if (files.length === 0) return
+    const newImages = files.map(file => URL.createObjectURL(file))
+    setFormData(prev => ({ 
+      ...prev, 
+      gallery: [...prev.gallery, ...newImages].slice(0, 5) 
+    }))
+  }
+
   // Variant Management
-  const addVariant = () => {
-    setColorVariants(prev => [
+  const handleVariantMainImage = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setCurrentVariant(prev => ({ ...prev, mainImage: URL.createObjectURL(file) }))
+    }
+  }
+
+  const handleVariantGallery = (e) => {
+    const files = Array.from(e.target.files)
+    if (files.length === 0) return
+    const newImages = files.map(file => URL.createObjectURL(file))
+    setCurrentVariant(prev => ({ 
+      ...prev, 
+      gallery: [...prev.gallery, ...newImages].slice(0, 5) 
+    }))
+  }
+
+  const removeVariantGalleryImage = (idx) => {
+    setCurrentVariant(prev => ({
       ...prev,
-      { id: Date.now().toString(), color: '#000000', label: 'New Color', images: [] }
-    ])
+      gallery: prev.gallery.filter((_, i) => i !== idx)
+    }))
+  }
+
+  const addColorVariant = () => {
+    if (!currentVariant.label || !currentVariant.mainImage) {
+      alert('Please provide color name and main image')
+      return
+    }
+    setColorVariants(prev => [...prev, { ...currentVariant, id: Date.now().toString() }])
+    setCurrentVariant({
+      label: '',
+      color: '#FFFFFF',
+      mainImage: null,
+      gallery: []
+    })
   }
 
   const removeVariant = (id) => {
     setColorVariants(prev => prev.filter(v => v.id !== id))
   }
 
-  const updateVariant = (id, field, value) => {
-    setColorVariants(prev => prev.map(v => v.id === id ? { ...v, [field]: value } : v))
-  }
-
-  const handleVariantImageChange = (id, e) => {
-    const files = Array.from(e.target.files)
-    if (files.length === 0) return
-
-    const newImages = files.map(file => URL.createObjectURL(file))
-    setColorVariants(prev => prev.map(v => v.id === id ? { ...v, images: [...v.images, ...newImages] } : v))
-  }
-
-  const removeVariantImage = (variantId, imgIdx) => {
-    setColorVariants(prev => prev.map(v => v.id === variantId ? { 
-      ...v, 
-      images: v.images.filter((_, i) => i !== imgIdx) 
-    } : v))
-  }
-
   const handleSubmit = (e) => {
     e.preventDefault()
-    const formattedData = {
+    
+    // Clean data based on mode
+    const finalData = {
       ...formData,
-      colorVariants,
       capacities: typeof formData.capacities === 'string' ? formData.capacities.split(',').map(s => s.trim()).filter(Boolean) : formData.capacities,
     }
-    onSubmit(formattedData)
+
+    if (hasVariants) {
+      finalData.colorVariants = colorVariants
+      finalData.mainImage = null
+      finalData.gallery = []
+    } else {
+      finalData.colorVariants = []
+      // mainImage and gallery are already in formData
+    }
+
+    onSubmit(finalData)
   }
 
   return (
@@ -103,32 +158,6 @@ export default function ProductForm({ onSubmit, initialData = null }) {
           />
         </div>
 
-        <div className="md:col-span-2 space-y-1">
-          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Shipping and Returns</label>
-          <textarea
-            name="shippingReturns"
-            value={formData.shippingReturns}
-            onChange={handleChange}
-            rows={2}
-            className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-1"
-            style={{ borderColor: 'var(--border-color)' }}
-            placeholder="Shipping and returns policy..."
-          />
-        </div>
-
-        <div className="md:col-span-2 space-y-1">
-          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Return Policies</label>
-          <textarea
-            name="returnPolicies"
-            value={formData.returnPolicies}
-            onChange={handleChange}
-            rows={2}
-            className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-1"
-            style={{ borderColor: 'var(--border-color)' }}
-            placeholder="Return policies..."
-          />
-        </div>
-
         <div className="space-y-1">
           <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">SKU</label>
           <input required name="sku" value={formData.sku} onChange={handleChange} className="w-full px-3 py-2 text-sm border rounded-lg font-mono" placeholder="AQ-GL-01" />
@@ -156,100 +185,204 @@ export default function ProductForm({ onSubmit, initialData = null }) {
           </div>
         </div>
 
-        {/* Color Variants Section */}
-        <div className="md:col-span-2 space-y-4 pt-4 border-t border-gray-100">
-          <div className="flex items-center justify-between">
-            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Color Image Variants</label>
-            <button 
-              type="button" 
-              onClick={addVariant}
-              className="flex items-center gap-1.5 text-[10px] font-bold text-primary px-2 py-1 rounded bg-primary/5 hover:bg-primary/10 transition-colors uppercase"
-            >
-              <Plus size={12} /> Add Variant
-            </button>
-          </div>
+        {/* VARIANT TOGGLE */}
+        <div className="md:col-span-2 p-4 bg-blue-50/50 rounded-2xl border border-blue-100 flex items-center justify-between">
+            <div>
+                <h4 className="text-sm font-bold text-blue-900">Enable Color Variants</h4>
+                <p className="text-[10px] text-blue-600 font-medium">Toggle this if the product comes in different colors</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                    type="checkbox" 
+                    checked={hasVariants}
+                    onChange={(e) => setHasVariants(e.target.checked)}
+                    className="sr-only peer" 
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+        </div>
 
-          <div className="space-y-6">
-            {colorVariants.map((variant, vIdx) => (
-              <div key={variant.id} className="p-4 rounded-xl border border-gray-100 bg-gray-50/30 space-y-4 relative group">
-                {colorVariants.length > 1 && (
-                  <button 
-                    type="button" 
-                    onClick={() => removeVariant(variant.id)}
-                    className="absolute -top-2 -right-2 p-1.5 bg-white text-red-500 rounded-full border border-gray-100 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {!hasVariants ? (
+          /* STANDARD IMAGES SECTION */
+          <div className="md:col-span-2 space-y-4 pt-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Color Code</label>
-                    <div className="flex gap-2">
-                      <input 
-                        type="color" 
-                        value={variant.color} 
-                        onChange={(e) => updateVariant(variant.id, 'color', e.target.value)}
-                        className="w-10 h-9 p-1 rounded-lg border bg-white cursor-pointer"
-                      />
-                      <input 
-                        type="text" 
-                        value={variant.color} 
-                        onChange={(e) => updateVariant(variant.id, 'color', e.target.value)}
-                        className="flex-1 px-3 py-2 text-xs border rounded-lg font-mono uppercase"
-                        placeholder="#FFFFFF"
-                      />
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Main Image</label>
+                    <div 
+                      onClick={() => formMainImageRef.current?.click()}
+                      className="aspect-square rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all overflow-hidden"
+                    >
+                        <input type="file" ref={formMainImageRef} onChange={handleGlobalMainImage} className="hidden" accept="image/*" />
+                        {formData.mainImage ? (
+                          <img src={formData.mainImage} className="w-full h-full object-contain" />
+                        ) : (
+                          <>
+                            <Upload size={24} className="text-gray-400 mb-2" />
+                            <span className="text-[10px] font-bold text-gray-500 uppercase">Upload</span>
+                          </>
+                        )}
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Color Label</label>
-                    <input 
-                      type="text" 
-                      value={variant.label} 
-                      onChange={(e) => updateVariant(variant.id, 'label', e.target.value)}
-                      className="w-full px-3 py-2 text-xs border rounded-lg"
-                      placeholder="e.g. Arctic White"
-                    />
-                  </div>
-                </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Variant Images</label>
-                  <div className="flex flex-wrap gap-2">
-                    {variant.images.map((img, imgIdx) => (
-                      <div key={imgIdx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-white group/img">
-                        <img src={img} className="w-full h-full object-contain p-1" />
-                        <button 
-                          type="button" 
-                          onClick={() => removeVariantImage(variant.id, imgIdx)}
-                          className="absolute top-0.5 right-0.5 p-0.5 bg-red-500 text-white rounded-full opacity-0 group-hover/img:opacity-100"
-                        >
-                          <X size={8} />
-                        </button>
-                      </div>
-                    ))}
-                    <button 
-                      type="button" 
-                      onClick={() => fileInputRefs.current[variant.id]?.click()}
-                      className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400 hover:border-primary hover:text-primary bg-white transition-all"
-                    >
-                      <Upload size={14} />
-                      <span className="text-[8px] font-bold uppercase mt-1">Add</span>
-                    </button>
-                    <input 
-                      type="file" 
-                      hidden 
-                      multiple 
-                      accept="image/*"
-                      ref={el => fileInputRefs.current[variant.id] = el}
-                      onChange={(e) => handleVariantImageChange(variant.id, e)}
-                    />
+                  <div className="md:col-span-2 space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Gallery (Up to 5)</label>
+                    <div className="flex flex-wrap gap-3">
+                        {formData.gallery.map((img, i) => (
+                          <div key={i} className="w-20 h-20 rounded-xl border border-gray-100 relative group overflow-hidden">
+                             <img src={img} className="w-full h-full object-cover" />
+                             <button 
+                                type="button"
+                                onClick={() => setFormData(p => ({ ...p, gallery: p.gallery.filter((_, idx) => idx !== i) }))}
+                                className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                             >
+                                <X size={10} />
+                             </button>
+                          </div>
+                        ))}
+                        {formData.gallery.length < 5 && (
+                          <button 
+                            type="button"
+                            onClick={() => formGalleryRef.current?.click()}
+                            className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 hover:border-primary hover:text-primary transition-all"
+                          >
+                            <input type="file" ref={formGalleryRef} multiple onChange={handleGlobalGallery} className="hidden" accept="image/*" />
+                            <Plus size={20} />
+                          </button>
+                        )}
+                    </div>
                   </div>
+              </div>
+          </div>
+        ) : (
+          /* COLOR VARIANTS SECTION */
+          <div className="md:col-span-2 space-y-6 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                   <h3 className="text-sm font-bold text-gray-900">Color Variants & Images *</h3>
+                   <p className="text-[10px] text-gray-500">Each color variant must have its own images</p>
                 </div>
               </div>
-            ))}
+              
+              <div className="p-4 rounded-xl border-2 border-dashed border-gray-100 bg-gray-50/30">
+                <h4 className="text-xs font-bold text-gray-800 mb-3 flex items-center gap-2">
+                  <CheckCircle2 size={14} className="text-primary" />
+                  Add New Color Variant
+                </h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                   <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Color Name *</label>
+                      <input 
+                        type="text" 
+                        value={currentVariant.label}
+                        onChange={(e) => setCurrentVariant(prev => ({ ...prev, label: e.target.value }))}
+                        placeholder="e.g. Alpine White"
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm transition-all focus:ring-1"
+                      />
+                   </div>
+                   <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Color Theme</label>
+                      <div className="flex gap-2">
+                         <input 
+                           type="color" 
+                           value={currentVariant.color}
+                           onChange={(e) => setCurrentVariant(prev => ({ ...prev, color: e.target.value }))}
+                           className="w-10 h-10 p-1 rounded-lg border border-gray-200 bg-white cursor-pointer"
+                         />
+                         <input 
+                           type="text" 
+                           value={currentVariant.color}
+                           onChange={(e) => setCurrentVariant(prev => ({ ...prev, color: e.target.value }))}
+                           className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-mono uppercase"
+                           placeholder="#FFFFFF"
+                         />
+                      </div>
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Main Image *</label>
+                       <div 
+                         onClick={() => variantMainImageRef.current?.click()}
+                         className="aspect-square rounded-xl border-2 border-dashed border-gray-200 bg-white flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-all overflow-hidden"
+                       >
+                          <input type="file" ref={variantMainImageRef} onChange={handleVariantMainImage} className="hidden" accept="image/*" />
+                          {currentVariant.mainImage ? (
+                             <img src={currentVariant.mainImage} className="w-full h-full object-contain p-2" />
+                          ) : (
+                             <Upload size={20} className="text-gray-400" />
+                          )}
+                       </div>
+                    </div>
+                    <div className="md:col-span-2 space-y-1">
+                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Gallery (Max 5)</label>
+                       <div className="flex flex-wrap gap-2">
+                          {currentVariant.gallery.map((img, idx) => (
+                            <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-white group/img">
+                               <img src={img} className="w-full h-full object-cover" />
+                               <button 
+                                 type="button"
+                                 onClick={() => removeVariantGalleryImage(idx)}
+                                 className="absolute top-0.5 right-0.5 p-0.5 bg-red-500 text-white rounded-full opacity-0 group-hover/img:opacity-100 transition-opacity"
+                               >
+                                  <X size={10} />
+                               </button>
+                            </div>
+                          ))}
+                          {currentVariant.gallery.length < 5 && (
+                            <button 
+                              type="button"
+                              onClick={() => variantGalleryRef.current?.click()}
+                              className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-200 bg-white hover:border-primary text-gray-400 transition-all flex items-center justify-center"
+                            >
+                               <input type="file" multiple ref={variantGalleryRef} onChange={handleVariantGallery} className="hidden" accept="image/*" />
+                               <Plus size={16} />
+                            </button>
+                          )}
+                       </div>
+                    </div>
+                </div>
+
+                <button 
+                  type="button"
+                  onClick={addColorVariant}
+                  className="w-full py-2.5 bg-gray-900 text-white text-xs font-bold rounded-xl hover:bg-black transition-all flex items-center justify-center gap-2"
+                >
+                  <Plus size={14} /> Add Color Variant
+                </button>
+              </div>
+
+              {colorVariants.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Added Variants ({colorVariants.length})</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {colorVariants.map((v) => (
+                        <div key={v.id} className="p-3 rounded-2xl border border-gray-100 bg-white shadow-sm flex gap-3 relative group">
+                           <div className="w-12 h-12 rounded-xl overflow-hidden border border-gray-50 shrink-0 bg-gray-50">
+                              <img src={v.mainImage} className="w-full h-full object-cover" />
+                           </div>
+                           <div>
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                 <div className="w-2 h-2 rounded-full border border-gray-100" style={{ background: v.color }} />
+                                 <h5 className="text-xs font-bold text-gray-800">{v.label}</h5>
+                              </div>
+                              <p className="text-[9px] text-gray-400 font-medium">{v.gallery.length + 1} Image(s)</p>
+                           </div>
+                           <button 
+                             type="button"
+                             onClick={() => removeVariant(v.id)}
+                             className="absolute top-2 right-2 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                           >
+                              <Trash2 size={12} />
+                           </button>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
           </div>
-        </div>
+        )}
 
         {/* Other Details */}
         <div className="space-y-1 md:col-span-2">

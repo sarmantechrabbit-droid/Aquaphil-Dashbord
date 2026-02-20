@@ -1,6 +1,7 @@
-import { motion } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { useState } from 'react'
+import Pagination from './Pagination'
+import { motion } from "framer-motion";
 
 export default function Table({
   columns,
@@ -76,7 +77,7 @@ export default function Table({
                 >
                   {columns.map(col => (
                     <td key={col.key} className="px-5 py-3.5 whitespace-nowrap text-gray-700">
-                      {col.render ? col.render(row[col.key], row) : (row[col.key] ?? '—')}
+                      {col.render ? (col.render(row[col.key], row) || '—') : (row[col.key] || '—')}
                     </td>
                   ))}
                 </motion.tr>
@@ -87,39 +88,13 @@ export default function Table({
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="px-5 py-3 border-t flex items-center justify-between" style={{ borderColor: 'var(--border-color)' }}>
-          <p className="text-xs text-gray-500">
-            Showing {Math.min((page - 1) * perPage + 1, filtered.length)}–{Math.min(page * perPage, filtered.length)} of {filtered.length}
-          </p>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-40 transition-colors"
-            >
-              <ChevronLeft size={14} />
-            </button>
-            {Array.from({ length: totalPages }, (_, i) => (
-              <button
-                key={i}
-                onClick={() => setPage(i + 1)}
-                className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${page === i + 1 ? 'text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                style={page === i + 1 ? { background: 'var(--primary)' } : {}}
-              >
-                {i + 1}
-              </button>
-            ))}
-            <button
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-40 transition-colors"
-            >
-              <ChevronRight size={14} />
-            </button>
-          </div>
-        </div>
-      )}
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        totalItems={filtered.length}
+        itemsPerPage={perPage}
+      />
     </div>
   )
 }

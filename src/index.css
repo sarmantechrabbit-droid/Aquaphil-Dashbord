@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+html {
+  font-size: 110%; /* Scale up base font size for larger UI */
+}
+
 /* @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap'); */
 
 @theme {

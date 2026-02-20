@@ -5,7 +5,6 @@ import RecentOrders from '../../components/Dashboard/RecentOrders'
 import AMCAlerts from '../../components/Dashboard/AMCAlerts'
 import PendingServices from '../../components/Dashboard/PendingServices'
 import UpcomingDemos from '../../components/Dashboard/UpcomingDemos'
-import SupportSummary from '../../components/Dashboard/SupportSummary'
 import Modal from '../../components/common/Modal'
 import StatusBadge from '../../components/common/StatusBadge'
 import { dashboardStats } from '../../data/dummyData'
@@ -57,14 +56,6 @@ export default function Dashboard() {
         </motion.div>
       </motion.div>
 
-      {/* Ticket Summary */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4, duration: 0.35 }}
-      >
-        <SupportSummary />
-      </motion.div>
 
       {/* Order Detail Modal */}
       <Modal isOpen={!!selectedOrder} onClose={() => setSelectedOrder(null)} title="Order Details">

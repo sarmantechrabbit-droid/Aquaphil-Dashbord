@@ -3,9 +3,10 @@ import { motion } from 'framer-motion'
 import Table from '../common/Table'
 import Card from '../common/Card'
 import StatusBadge from '../common/StatusBadge'
+import StatusSelect from '../common/StatusSelect'
 import Modal from '../common/Modal'
 import { staff as initialStaff, roles as initialRoles } from '../../data/dummyData'
-import { UserPlus, Shield, Plus } from 'lucide-react'
+import { UserPlus, Shield, Plus, Edit2, Trash2 } from 'lucide-react'
 import StaffForm from './StaffForm'
 
 export function RoleForm({ onSubmit }) {
@@ -53,12 +54,29 @@ export function RoleForm({ onSubmit }) {
 export default function StaffAndRoles() {
   const [staffData, setStaffData] = useState(initialStaff)
   const [rolesData, setRolesData] = useState(initialRoles)
+  const [editingStaff, setEditingStaff] = useState(null)
+  const [editingRole, setEditingRole] = useState(null) // Added for future role editing if needed
   const [showAddStaff, setShowAddStaff] = useState(false)
   const [showAddRole, setShowAddRole] = useState(false)
 
   const handleAddStaff = (member) => {
     setStaffData([{ ...member, id: `STF${staffData.length + 1}`, joinDate: new Date().toISOString().split('T')[0] }, ...staffData])
     setShowAddStaff(false)
+  }
+
+  const handleEditStaff = (updatedData) => {
+    setStaffData(prev => prev.map(s => s.id === editingStaff.id ? { ...s, ...updatedData } : s))
+    setEditingStaff(null)
+  }
+
+  const handleDeleteStaff = (id) => {
+    if (window.confirm('Are you sure you want to delete this staff member?')) {
+      setStaffData(prev => prev.filter(s => s.id !== id))
+    }
+  }
+
+  const handleStatusChange = (id, newStatus) => {
+    setStaffData(prev => prev.map(s => s.id === id ? { ...s, status: newStatus } : s))
   }
 
   const handleAddRole = (role) => {
@@ -74,7 +92,37 @@ export default function StaffAndRoles() {
     { key: 'role', label: 'Role', render: v => <span className="font-semibold text-blue-700">{v}</span> },
     { key: 'department', label: 'Department' },
     { key: 'joinDate', label: 'Joined' },
-    { key: 'status', label: 'Status', render: v => <StatusBadge status={v} /> },
+    { 
+      key: 'status', 
+      label: 'Status', 
+      render: (v, row) => (
+        <StatusSelect 
+          status={v} 
+          options={['Active', 'Inactive', 'On Leave']} 
+          onChange={(newStatus) => handleStatusChange(row.id, newStatus)} 
+        />
+      ) 
+    },
+    {
+      key: 'id', label: 'Action', render: (_, row) => (
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setEditingStaff(row)} 
+            className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-amber-600 transition-colors"
+            title="Edit Staff"
+          >
+            <Edit2 size={16} />
+          </button>
+          <button 
+            onClick={() => handleDeleteStaff(row.id)} 
+            className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-red-600 transition-colors"
+            title="Delete Staff"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      )
+    }
   ]
 
   return (
@@ -132,6 +180,12 @@ export default function StaffAndRoles() {
 
       <Modal isOpen={showAddStaff} onClose={() => setShowAddStaff(false)} title="Add Staff Member">
         <StaffForm onSubmit={handleAddStaff} />
+      </Modal>
+
+      <Modal isOpen={!!editingStaff} onClose={() => setEditingStaff(null)} title="Edit Staff Member">
+        {editingStaff && (
+          <StaffForm initialData={editingStaff} onSubmit={handleEditStaff} />
+        )}
       </Modal>
 
       <Modal isOpen={showAddRole} onClose={() => setShowAddRole(false)} title="Create New Role">

@@ -6,20 +6,21 @@ import {
   ChevronDown, FolderOpen, UserCog,
   ClipboardList, RefreshCw, AlertCircle, BadgeDollarSign,
   Calendar, Tag, Bell, Image, BookOpen, MessageSquare,
-  TrendingUp, CreditCard, SlidersHorizontal, Layers, Home, X
+  TrendingUp, CreditCard, SlidersHorizontal, Layers, Home, X, Clock, CheckCircle
 } from 'lucide-react'
 import { useSidebar } from '../../context/SidebarContext'
 import logo from '../../assets/logo.png'
 import logo1 from '../../assets/logo1.png'
 
 import { NavLink, useLocation, Link } from 'react-router-dom'
+import { useData } from '../../context/DataContext'
 
 const navItems = [
   {
     section: 'MAIN MENU',
     items: [
-      { key: 'home', label: 'Home', icon: Home, path: '/' },
-      { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+    
+      { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/' },
     ]
   },
   {
@@ -84,7 +85,7 @@ const navItems = [
 ]
 
 
-function NavItem({ item, isChild = false }) {
+function NavItem({ item, isChild = false, badge = null }) {
   const { isCollapsed, openMenus, toggleMenu } = useSidebar()
   const location = useLocation()
   const Icon = item.icon
@@ -105,7 +106,21 @@ function NavItem({ item, isChild = false }) {
         }
       >
         <Icon size={isChild ? 18 : 20} className={`shrink-0 ${isChild ? '' : 'stroke-[1.5]'}`} />
-        {!isCollapsed && <span className="truncate">{item.label}</span>}
+        {!isCollapsed && (
+          <>
+            <span className="truncate flex-1">{item.label}</span>
+            {badge && (
+              <span className="px-2 py-0.5 rounded-full bg-red-500 text-[10px] font-bold text-white shadow-lg">
+                {badge}
+              </span>
+            )}
+          </>
+        )}
+        
+        {isCollapsed && badge && (
+          <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 border border-white/20" />
+        )}
+
         {isCollapsed && !isChild && (
           <span className="absolute left-full ml-3 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity shadow-lg border border-white/10">
             {item.label}
@@ -124,13 +139,26 @@ function NavItem({ item, isChild = false }) {
         title={isCollapsed ? item.label : undefined}
         className={`w-full ${baseClasses} ${isParentActive ? 'bg-white/15 text-white font-semibold' : 'text-white/70 hover:bg-white/10 hover:text-white font-medium'} ${isCollapsed ? 'justify-center px-2' : ''}`}
       >
-        <Icon size={20} className="shrink-0 stroke-[1.5]" />
+        <div className="relative group/icon">
+          <Icon size={20} className="shrink-0 stroke-[1.5]" />
+          {isCollapsed && badge && (
+            <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 border border-white/20" />
+          )}
+        </div>
+        
         {!isCollapsed && (
           <>
             <span className="truncate flex-1 text-left">{item.label}</span>
-            <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }} className="text-white/50">
-              <ChevronDown size={16} className="shrink-0" />
-            </motion.div>
+            <div className="flex items-center gap-2">
+              {badge && (
+                <span className="px-2 py-0.5 rounded-full bg-red-500 text-[10px] font-bold text-white shadow-lg">
+                  {badge}
+                </span>
+              )}
+              <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }} className="text-white/50">
+                <ChevronDown size={16} className="shrink-0" />
+              </motion.div>
+            </div>
           </>
         )}
         {isCollapsed && (
@@ -151,7 +179,12 @@ function NavItem({ item, isChild = false }) {
           >
             <div className="mt-1 space-y-0.5">
               {item.children.map((child) => (
-                <NavItem key={child.path} item={child} isChild={true} />
+                <NavItem 
+                  key={child.path} 
+                  item={child} 
+                  isChild={true} 
+                  badge={item.badgeMap ? item.badgeMap[child.path] : null}
+                />
               ))}
             </div>
           </motion.div>
@@ -192,12 +225,12 @@ export default function Sidebar() {
           x: isMobileOpen ? 0 : (window.innerWidth < 1024 ? -280 : 0)
         }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className={`fixed lg:static inset-y-0 left-0 z-50 bg-[#0f3460] grow-0 shrink-0 flex flex-col overflow-hidden shadow-2xl lg:shadow-none border-r border-white/10`}
+        className={`fixed lg:static inset-y-0 left-0 z-40 bg-[#0f3460] grow-0 shrink-0 flex flex-col overflow-hidden shadow-2xl lg:shadow-none border-r border-white/10`}
         style={{ width: isCollapsed ? 80 : 280 }}
       >
         {/* Logo & Close */}
         <div className="flex items-center justify-between px-6 py-6 shrink-0">
-          <Link to="/dashboard" className="flex items-center gap-3">
+          <Link to="/" className="flex items-center gap-3">
              <img src={logo1} alt="Aquaphil" className="h-10 w-auto object-contain transition-transform group-hover:scale-105" />
           </Link>
           
@@ -211,20 +244,64 @@ export default function Sidebar() {
           )}
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 overflow-y-auto sidebar-scroll px-4 pb-6 space-y-2">
-          {navItems.map((section, idx) => (
-             <div key={idx}>
+          {(() => {
+            const { orders, services, renewals, tickets, demos, inquiries } = useData()
+
+            const srvActive = services.filter(s => s.status !== 'completed' && s.status !== 'cancelled')
+            const pendingServices = srvActive.length
+            const amcSrv = srvActive.filter(s => s.type === 'amc').length
+            const paidSrv = srvActive.length - amcSrv
+
+            // Orders (Active: anything not delivered or cancelled)
+            const ordActive = orders.filter(o => o.status !== 'delivered' && o.status !== 'cancelled' && o.status !== 'refunded')
+            const pendingOrders = ordActive.length
+
+            const openTickets = tickets.filter(t => t.status === 'open' || t.status === 'in_progress').length
+            
+            // AMC breakdown (Pending Renewals)
+            const pendingRenewals = renewals.filter(r => r.status === 'pending').length
+
+            // Demos breakdown
+            const activeDemos = demos.filter(d => d.status === 'scheduled' || d.status === 'rescheduled').length
+
+            // Configuration breakdown (Inquiries)
+            const activeInquiries = inquiries.filter(i => i.status === 'open' || i.status === 'in_progress').length
+
+            const badgeMap = {
+              'orders': pendingOrders > 0 ? pendingOrders : null,
+              'support': openTickets > 0 ? openTickets : null,
+              'services': pendingServices > 0 ? pendingServices : null,
+              '/services/list': pendingServices > 0 ? pendingServices : null,
+              '/services/amc': amcSrv > 0 ? amcSrv : null,
+              '/services/paid': paidSrv > 0 ? paidSrv : null,
+              'amc': pendingRenewals > 0 ? pendingRenewals : null,
+              '/amc/renewals': pendingRenewals > 0 ? pendingRenewals : null,
+              'demo': activeDemos > 0 ? activeDemos : null,
+              '/config/inquiries': activeInquiries > 0 ? activeInquiries : null,
+              'configurations': activeInquiries > 0 ? activeInquiries : null,
+            }
+
+            return navItems.map((section, idx) => (
+              <div key={idx}>
                 {!isCollapsed && (
-                   <div className="px-4 text-[11px] font-bold text-white/40 uppercase tracking-widest mt-6 mb-2">{section.section}</div>
+                  <div className="px-4 text-[11px] font-bold text-white/40 uppercase tracking-widest mt-6 mb-2">{section.section}</div>
                 )}
                 <div className="space-y-1">
-                   {section.items.map(item => (
-                      <NavItem key={item.key} item={item} />
-                   ))}
+                  {section.items.map(item => (
+                    <NavItem 
+                      key={item.key} 
+                      item={{ 
+                        ...item, 
+                        badgeMap // Pass the full map to parents so they can pass to children
+                      }} 
+                      badge={badgeMap[item.key] || badgeMap[item.path]}
+                    />
+                  ))}
                 </div>
-             </div>
-          ))}
+              </div>
+            ))
+          })()}
         </nav>
 
         {/* Footer */}

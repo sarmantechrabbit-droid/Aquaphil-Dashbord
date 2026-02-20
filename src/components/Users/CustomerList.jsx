@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { UserPlus, Eye, ShoppingBag, ShieldCheck, Wrench, Headphones, User } from 'lucide-react'
+import { UserPlus, Eye, ShoppingBag, ShieldCheck, Wrench, Headphones, User, Edit2, Trash2 } from 'lucide-react'
 import Table from '../common/Table'
+import StatusSelect from '../common/StatusSelect'
 import StatusBadge from '../common/StatusBadge'
 import Modal from '../common/Modal'
 import { 
@@ -16,8 +17,13 @@ import CustomerForm from './CustomerForm'
 export default function CustomerList() {
   const [data, setData] = useState(initialCustomers)
   const [selected, setSelected] = useState(null)
+  const [editingCustomer, setEditingCustomer] = useState(null)
   const [showAdd, setShowAdd] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
+
+  const handleStatusChange = (id, newStatus) => {
+    setData(prev => prev.map(c => c.id === id ? { ...c, status: newStatus } : c))
+  }
 
   const handleAddSubmit = (newCustomer) => {
     const customerWithId = {
@@ -29,6 +35,17 @@ export default function CustomerList() {
     }
     setData([customerWithId, ...data])
     setShowAdd(false)
+  }
+
+  const handleEditSubmit = (updatedData) => {
+    setData(prev => prev.map(c => c.id === editingCustomer.id ? { ...c, ...updatedData } : c))
+    setEditingCustomer(null)
+  }
+
+  const handleDelete = (id) => {
+    if (window.confirm('Are you sure you want to delete this customer?')) {
+      setData(prev => prev.filter(c => c.id !== id))
+    }
   }
 
   const customerData = useMemo(() => {
@@ -47,19 +64,45 @@ export default function CustomerList() {
     { key: 'email', label: 'Email' },
     { key: 'phone', label: 'Phone' },
     { key: 'city', label: 'City' },
-    { key: 'products', label: 'Products', render: v => <span className="font-semibold">{v || 0}</span> },
+    { key: 'totalOrders', label: 'Orders', render: v => <span className="font-semibold">{v}</span> },
     { key: 'amcActive', label: 'AMC', render: v => <StatusBadge status={v ? 'Active' : 'Inactive'} /> },
-    { key: 'status', label: 'Status', render: v => <StatusBadge status={v} /> },
+    { 
+      key: 'status', 
+      label: 'Status', 
+      render: (v, row) => (
+        <StatusSelect 
+          status={v} 
+          options={['active', 'inactive', 'blocked']} 
+          onChange={(newStatus) => handleStatusChange(row.id, newStatus)} 
+        />
+      ) 
+    },
     { key: 'totalSpend', label: 'Total Spend', render: v => `₹${(v || 0).toLocaleString()}` },
     {
       key: 'id', label: 'Action', render: (_, row) => (
-        <button 
-          onClick={() => { setSelected(row); setActiveTab('overview'); }} 
-          className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors" 
-          style={{ color: 'var(--primary)' }}
-        >
-          <Eye size={13} /> View
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => { setSelected(row); setActiveTab('overview'); }} 
+            className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-blue-600 transition-colors" 
+            title="View Details"
+          >
+            <Eye size={16} />
+          </button>
+          <button 
+            onClick={() => setEditingCustomer(row)} 
+            className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-amber-600 transition-colors"
+            title="Edit Customer"
+          >
+            <Edit2 size={16} />
+          </button>
+          <button 
+            onClick={() => handleDelete(row.id)} 
+            className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-red-600 transition-colors"
+            title="Delete Customer"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
       )
     }
   ]
@@ -268,6 +311,12 @@ export default function CustomerList() {
       {/* Add Modal */}
       <Modal isOpen={showAdd} onClose={() => setShowAdd(false)} title="Add New Customer">
         <CustomerForm onSubmit={handleAddSubmit} />
+      </Modal>
+
+      <Modal isOpen={!!editingCustomer} onClose={() => setEditingCustomer(null)} title="Edit Customer">
+        {editingCustomer && (
+          <CustomerForm initialData={editingCustomer} onSubmit={handleEditSubmit} />
+        )}
       </Modal>
     </div>
   )

@@ -16,7 +16,7 @@ export default function ProductDetails() {
   const [activeVariant, setActiveVariant] = useState(null)
   const [activeImageIdx, setActiveImageIdx] = useState(0)
   const [selectedCapacity, setSelectedCapacity] = useState(null)
-  const [quantity, setQuantity] = useState(1)
+
   const [openSection, setOpenSection] = useState('desc')
 
   useEffect(() => {
@@ -31,13 +31,21 @@ export default function ProductDetails() {
   if (!product) return <div className="p-8 text-center text-gray-500">Loading product...</div>
 
   // Generate some helper data if missing
-  const images = activeVariant?.images?.length > 0 ? activeVariant.images : ['https://via.placeholder.com/600x600?text=No+Image']
+  const images = (() => {
+    if (!activeVariant) return ['https://via.placeholder.com/600x600?text=No+Variant']
+    const variantImages = []
+    if (activeVariant.mainImage) variantImages.push(activeVariant.mainImage)
+    if (activeVariant.gallery && activeVariant.gallery.length > 0) {
+      variantImages.push(...activeVariant.gallery)
+    }
+    return variantImages.length > 0 ? variantImages : ['https://via.placeholder.com/600x600?text=No+Image']
+  })()
   
   return (
     <motion.div 
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
-      className=" mx-auto pb-12"
+      className="max-w-7xl mx-auto pb-12"
     >
       {/* Breadcrumb / Back */}
       <div className="flex items-center justify-between mb-8">
@@ -156,8 +164,8 @@ export default function ProductDetails() {
                           title={v.label}
                         >
                           <div className="w-full h-full rounded shadow-sm overflow-hidden bg-gray-100 relative">
-                              {v.images?.[0] ? (
-                                <img src={v.images[0]} className="w-full h-full object-cover" />
+                              {v.mainImage ? (
+                                <img src={v.mainImage} className="w-full h-full object-cover" />
                               ) : (
                                 <div className="w-full h-full" style={{ backgroundColor: v.color }} />
                               )}
@@ -193,36 +201,7 @@ export default function ProductDetails() {
               </div>
             )}
 
-            {/* Actions */}
-            <div className="flex gap-4 pt-4">
-                <div className="flex items-center border border-gray-300 rounded-xl bg-gray-50">
-                  <button 
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors"
-                  >
-                      <Minus size={16} />
-                  </button>
-                  <span className="w-8 text-center font-bold text-gray-900">{quantity}</span>
-                  <button 
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors"
-                  >
-                      <Plus size={16} />
-                  </button>
-                </div>
-                
-                <button className="flex-1 py-3 border-2 border-[#0f3460] text-[#0f3460] font-bold rounded-xl hover:bg-blue-50 transition-colors bg-white">
-                  Add to Cart
-                </button>
 
-                <button className="w-12 h-12 flex items-center justify-center border border-gray-200 rounded-xl text-gray-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-all">
-                  <Heart size={20} />
-                </button>
-            </div>
-            
-            <button className="w-full py-3.5 bg-[#0f3460] text-white font-bold rounded-xl hover:bg-[#1a4b8c] transition-all shadow-lg shadow-blue-900/20 active:scale-95">
-                Buy it now
-            </button>
             
             {/* Accordions (Inside Info Card) */}
             <div className="pt-6 border-t border-gray-100 space-y-1">

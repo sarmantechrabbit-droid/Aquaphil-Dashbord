@@ -1,47 +1,79 @@
 import { useState } from 'react'
-import { Eye, Plus } from 'lucide-react'
+import { Eye, Plus, Edit2, Trash2 } from 'lucide-react'
+import DeleteModal from '../common/DeleteModal'
 import Table from '../common/Table'
+import StatusSelect from '../common/StatusSelect'
 import StatusBadge from '../common/StatusBadge'
 import Modal from '../common/Modal'
+import { useData } from '../../context/DataContext'
 import ServiceForm from './ServiceForm'
 import AssignTechnicianForm from './AssignTechnicianForm'
 
 export default function ServiceRequestTable({ data: initialData, title }) {
-  const [data, setData] = useState(initialData)
+  const { services, addService, updateService, deleteService } = useData()
   const [selected, setSelected] = useState(null)
+  const [editingRequest, setEditingRequest] = useState(null)
   const [assigningTo, setAssigningTo] = useState(null)
   const [showAdd, setShowAdd] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(null)
+
+  // Use initialData if provided (for AMC/Paid pages) but fallback to global services
+  const displayData = initialData || services
+
+  const handleDelete = () => {
+    deleteService(isDeleting)
+    setIsDeleting(null)
+  }
 
   const handleAddSubmit = (newReq) => {
     const reqWithId = {
       ...newReq,
-      id: `SRV${String(data.length + 1).padStart(3, '0')}`,
+      id: `SRV${String(services.length + 1).padStart(3, '0')}`,
       date: new Date().toISOString().split('T')[0],
       agent: ''
     }
-    setData([reqWithId, ...data])
+    addService(reqWithId)
     setShowAdd(false)
   }
 
   const handleAssignSubmit = (agentName) => {
-    setData(prev => prev.map(item => 
-      item.id === assigningTo.id 
-        ? { ...item, agent: agentName, status: 'Assigned' } 
-        : item
-    ))
+    updateService(assigningTo.id, { agent: agentName, status: 'Assigned' })
     setAssigningTo(null)
   }
 
+  const handleEditSubmit = (updatedData) => {
+    updateService(editingRequest.id, updatedData)
+    setEditingRequest(null)
+  }
+
+  const handleStatusChange = (id, newStatus) => {
+    updateService(id, { status: newStatus })
+  }
+
+  const handleDeleteClick = (id) => {
+    setIsDeleting(id)
+  }
+
   const columns = [
-    { key: 'id', label: 'ID' },
-    { key: 'customer', label: 'Customer' },
-    { key: 'type', label: 'Type', render: v => <span className={`font-medium ${v === 'amc' ? 'text-blue-600' : 'text-emerald-600'}`}>{v === 'amc' ? 'AMC' : 'Paid'}</span> },
-    { key: 'issue', label: 'Issue' },
-    { key: 'city', label: 'City' },
-    { key: 'date', label: 'Date' },
+    { key: 'id', label: 'ID', render: v => v || '—' },
+    { key: 'customer', label: 'Customer', render: v => v || '—' },
+    { key: 'type', label: 'Type', render: v => v ? <span className={`font-medium ${v === 'amc' ? 'text-blue-600' : 'text-emerald-600'}`}>{v === 'amc' ? 'AMC' : 'Paid'}</span> : '—' },
+    { key: 'issue', label: 'Issue', render: v => v || '—' },
+    { key: 'city', label: 'City', render: v => v || '—' },
+    { key: 'date', label: 'Date', render: v => v || '—' },
     { key: 'priority', label: 'Priority', render: v => <StatusBadge status={v} /> },
     { key: 'agent', label: 'Agent', render: v => v || <span className="text-gray-400 text-xs italic">Unassigned</span> },
-    { key: 'status', label: 'Status', render: v => <StatusBadge status={v} /> },
+    { 
+      key: 'status', 
+      label: 'Status', 
+      render: (v, row) => (
+        <StatusSelect 
+          status={v} 
+          options={['pending', 'assigned', 'in_progress', 'resolved']} 
+          onChange={(newStatus) => handleStatusChange(row.id, newStatus)} 
+        />
+      ) 
+    },
     {
       key: 'id', label: '', render: (_, row) => (
         <div className="flex items-center gap-2">
@@ -53,8 +85,22 @@ export default function ServiceRequestTable({ data: initialData, title }) {
               Assign
             </button>
           )}
-          <button onClick={() => setSelected(row)} className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded hover:bg-blue-50 transition-colors" style={{ color: 'var(--primary)' }}>
+          <button onClick={() => setSelected(row)} className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded hover:bg-blue-50 transition-colors" style={{ color: 'var(--primary)' }} title="View Details">
             <Eye size={13} /> View
+          </button>
+          <button 
+            onClick={() => setEditingRequest(row)} 
+            className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-amber-600 transition-colors"
+            title="Edit Request"
+          >
+            <Edit2 size={16} />
+          </button>
+          <button 
+            onClick={() => setIsDeleting(row.id)} 
+            className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-red-600 transition-colors"
+            title="Delete Request"
+          >
+            <Trash2 size={16} />
           </button>
         </div>
       )
@@ -65,7 +111,7 @@ export default function ServiceRequestTable({ data: initialData, title }) {
     <>
       <Table 
         title={title} 
-        data={data} 
+        data={displayData} 
         columns={columns} 
         searchKey="customer" 
         actions={
@@ -144,8 +190,8 @@ export default function ServiceRequestTable({ data: initialData, title }) {
                     <button
                       key={s}
                       onClick={() => {
-                        // Optimistic update
-                        setData(prev => prev.map(item => item.id === selected.id ? { ...item, status: statusValue } : item))
+                        // Global update
+                        updateService(selected.id, { status: statusValue })
                         setSelected(prev => ({ ...prev, status: statusValue }))
                       }}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
@@ -168,6 +214,12 @@ export default function ServiceRequestTable({ data: initialData, title }) {
         <ServiceForm onSubmit={handleAddSubmit} />
       </Modal>
 
+      <Modal isOpen={!!editingRequest} onClose={() => setEditingRequest(null)} title="Edit Service Request">
+        {editingRequest && (
+          <ServiceForm initialData={editingRequest} onSubmit={handleEditSubmit} />
+        )}
+      </Modal>
+
       <Modal isOpen={!!assigningTo} onClose={() => setAssigningTo(null)} title="Assign Technician">
         {assigningTo && (
           <div className="space-y-4">
@@ -180,6 +232,14 @@ export default function ServiceRequestTable({ data: initialData, title }) {
           </div>
         )}
       </Modal>
+
+      <DeleteModal 
+        isOpen={!!isDeleting} 
+        onClose={() => setIsDeleting(null)} 
+        onConfirm={handleDelete}
+        title="Delete Service Request"
+        message="Are you sure you want to delete this service request? This action cannot be undone."
+      />
     </>
   )
 }

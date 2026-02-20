@@ -36,7 +36,7 @@ export default function HomePortal() {
           >
             Manage your water purifier business with ease. Monitor sales, track services, and support your customers all in one place.
           </motion.p>
-          <Link to="/dashboard">
+          <Link to="/">
             <motion.button 
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}

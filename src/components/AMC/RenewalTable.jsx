@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { RefreshCw, CheckCircle2 } from 'lucide-react'
+import { RefreshCw, CheckCircle2, Trash2 } from 'lucide-react'
 import Table from '../common/Table'
 import StatusBadge from '../common/StatusBadge'
 import Modal from '../common/Modal'
@@ -26,11 +26,16 @@ export default function RenewalTable() {
     { key: 'status', label: 'Status', render: v => <StatusBadge status={v} /> },
     {
       key: 'id', label: '', render: (_, row) => (
-        <button 
-          onClick={() => { setSelected(row); setShowConfirm(true); }}
-          className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded text-white active:scale-95 transition-transform" style={{ background: 'var(--primary)' }}>
-          <RefreshCw size={11} /> Renew
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => { setSelected(row); setShowConfirm(true); }}
+            className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded text-white active:scale-95 transition-transform" style={{ background: 'var(--primary)' }}>
+            <RefreshCw size={11} /> Renew
+          </button>
+          <button onClick={() => alert(`Delete subscription ${row.id} (Mock)`)} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400 hover:text-red-600 transition-colors" title="Delete Subscription">
+            <Trash2 size={14} />
+          </button>
+        </div>
       )
     }
   ]
@@ -89,11 +94,16 @@ export function ExpiredTable() {
     { key: 'status', label: 'Status', render: v => <StatusBadge status={v} /> },
     {
       key: 'id', label: '', render: (_, row) => (
-        <button 
-          onClick={() => { setSelected(row); setShowConfirm(true); }}
-          className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded text-white active:scale-95 transition-transform" style={{ background: '#059669' }}>
-          <RefreshCw size={11} /> Re-activate
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => { setSelected(row); setShowConfirm(true); }}
+            className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded text-white active:scale-95 transition-transform" style={{ background: '#059669' }}>
+            <RefreshCw size={11} /> Re-activate
+          </button>
+          <button onClick={() => alert(`Delete expired subscription ${row.id} (Mock)`)} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400 hover:text-red-600 transition-colors" title="Delete Subscription">
+            <Trash2 size={14} />
+          </button>
+        </div>
       )
     }
   ]

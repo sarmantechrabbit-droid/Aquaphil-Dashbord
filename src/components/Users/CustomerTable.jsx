@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Search, Eye } from 'lucide-react'
+import { Search, Eye, Edit2, Trash2 } from 'lucide-react'
+import DeleteModal from '../common/DeleteModal'
 import Card from '../common/Card'
 import Table from '../common/Table'
 import StatusBadge from '../common/StatusBadge'
@@ -8,6 +9,13 @@ import Modal from '../common/Modal'
 export default function CustomerTable({ customers }) {
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState(null)
+  const [isDeleting, setIsDeleting] = useState(null)
+
+  const handleDelete = () => {
+    // In a real app, this would hit an API. Here we just show a mock feedback.
+    alert(`Delete customer ${isDeleting} (Mock)`);
+    setIsDeleting(null)
+  }
 
   const filtered = customers.filter(
     (c) =>
@@ -17,21 +25,29 @@ export default function CustomerTable({ customers }) {
   )
 
   const columns = [
-    { key: 'id', label: 'ID', render: (v) => <span className="font-mono text-xs text-gray-500">{v}</span> },
-    { key: 'name', label: 'Name', render: (v) => <span className="font-medium text-gray-800">{v}</span> },
+    { key: 'id', label: 'ID', render: (v) => <span className="font-mono text-xs text-gray-500">{v || '—'}</span> },
+    { key: 'name', label: 'Name', render: (v) => <span className="font-medium text-gray-800">{v || '—'}</span> },
     { key: 'email', label: 'Email' },
     { key: 'phone', label: 'Phone' },
     { key: 'city', label: 'City' },
-    { key: 'totalOrders', label: 'Orders', render: (v) => <span className="font-semibold">{v}</span> },
+    { key: 'totalOrders', label: 'Orders', render: (v) => <span className="font-semibold">{v ?? 0}</span> },
     { key: 'activeAMC', label: 'AMC', render: (v) => <StatusBadge status={v ? 'active' : 'inactive'} /> },
-    { key: 'status', label: 'Status', render: (v) => <StatusBadge status={v} /> },
+    { key: 'status', label: 'Status', render: (v) => v ? <StatusBadge status={v} /> : '—' },
     {
       key: 'id',
       label: '',
       render: (_, row) => (
-        <button onClick={() => setSelected(row)} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-primary transition-colors">
-          <Eye size={15} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setSelected(row)} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-primary transition-colors" title="View Details">
+            <Eye size={15} />
+          </button>
+          <button className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400 hover:text-amber-600 transition-colors" title="Edit Customer">
+            <Edit2 size={15} />
+          </button>
+          <button onClick={() => setIsDeleting(row.id)} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400 hover:text-red-600 transition-colors" title="Delete Customer">
+            <Trash2 size={15} />
+          </button>
+        </div>
       ),
     },
   ]
@@ -89,6 +105,14 @@ export default function CustomerTable({ customers }) {
           </div>
         )}
       </Modal>
+
+      <DeleteModal 
+        isOpen={!!isDeleting} 
+        onClose={() => setIsDeleting(null)} 
+        onConfirm={handleDelete}
+        title="Delete Customer"
+        message="Are you sure you want to delete this customer? This action cannot be undone."
+      />
     </>
   )
 }
